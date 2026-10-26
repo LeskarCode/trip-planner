@@ -1,0 +1,154 @@
+# =====================================================================
+# Trip Planner - Kubernetes deployment
+#   trip-db       : MongoDB, StatefulSet with persistent storage
+#   trip-api      : REST API, Deployment (scalable), internal Service
+#   trip-frontend : web pages, Deployment (scalable), LoadBalancer
+# =====================================================================
+
+# --- 1. Settings shared by the services ------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trip-config
+data:
+  MONGO_HOST: "trip-db"                 # database Service name (DNS)
+  API_URL: "http://trip-api:5000"       # API Service name (DNS)
+---
+# --- 2. Database: Service (internal only) ----------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: trip-db
+spec:
+  selector:
+    app: trip-db
+  ports:
+    - port: 27017
+---
+# --- 3. Database: StatefulSet with persistent storage -----------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trip-db
+spec:
+  serviceName: trip-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trip-db
+  template:
+    metadata:
+      labels:
+        app: trip-db
+    spec:
+      containers:
+        - name: mongo
+          image: mongo
+          args: ["--quiet"]
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: trip-db-data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: trip-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# --- 4. API: Service (internal only) ---------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: trip-api
+spec:
+  selector:
+    app: trip-api
+  ports:
+    - port: 5000
+---
+# --- 5. API: Deployment (scalable) -----------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trip-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trip-api
+  template:
+    metadata:
+      labels:
+        app: trip-api
+    spec:
+      containers:
+        - name: trip-api
+          image: leskarcode/trip-api:1.0
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MONGO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: trip-config
+                  key: MONGO_HOST
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+---
+# --- 6. Frontend: Service (the door to the outside) ------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: trip-frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: trip-frontend
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# --- 7. Frontend: Deployment (scalable) ------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trip-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trip-frontend
+  template:
+    metadata:
+      labels:
+        app: trip-frontend
+    spec:
+      containers:
+        - name: trip-frontend
+          image: leskarcode/trip-frontend:1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trip-config
+                  key: API_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
