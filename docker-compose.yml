@@ -1,0 +1,27 @@
+services:
+  trip-db:
+    image: mongo
+    command: --quiet
+    volumes:
+      - trip-db-data:/data/db
+
+  trip-api:
+    build: ./api
+    image: leskarcode/trip-api:1.0
+    environment:
+      MONGO_HOST: trip-db
+    depends_on:
+      - trip-db
+
+  trip-frontend:
+    build: ./frontend
+    image: leskarcode/trip-frontend:1.0
+    environment:
+      API_URL: http://trip-api:5000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - trip-api
+
+volumes:
+  trip-db-data:

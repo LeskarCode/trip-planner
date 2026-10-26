@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trip Planner</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      background: #f5f7fa;
+      color: #333;
+    }
+
+    h1 {
+      color: #1f4e79;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-top: 0;
+      margin-bottom: 30px;
+    }
+
+    .error {
+      background: #ffe0e0;
+      color: #a40000;
+      border-left: 4px solid #d93025;
+      padding: 10px 14px;
+      border-radius: 4px;
+    }
+
+    .trip-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .trip-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 12px 15px;
+      margin-bottom: 8px;
+    }
+
+    .trip-info {
+      flex: 1;
+    }
+
+    .trip-list a {
+      color: #1f4e79;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .trip-list a:hover {
+      text-decoration: underline;
+    }
+
+    .currency {
+      color: #777;
+      margin-left: 6px;
+    }
+
+    .delete-form {
+      margin: 0;
+    }
+
+    .delete-button {
+      background: #c0392b;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+
+    .delete-button:hover {
+      background: #962d22;
+    }
+
+    .form-box {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    input {
+      box-sizing: border-box;
+      padding: 8px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+    }
+
+    input[name="name"] {
+      width: 100%;
+      max-width: 350px;
+    }
+
+    input[name="currency"] {
+      width: 80px;
+    }
+
+    .create-button {
+      background: #1f4e79;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 9px 16px;
+      cursor: pointer;
+    }
+
+    .create-button:hover {
+      background: #163a5c;
+    }
+
+    footer {
+      color: #888;
+      font-size: 0.8em;
+      margin-top: 40px;
+      border-top: 1px solid #ddd;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Trip Planner</h1>
+  <p class="subtitle">Plan your trips, stops and expenses.</p>
+
+
+  <!-- Show an error message when something goes wrong -->
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+
+
+  <!-- List of existing trips -->
+  <h2>My trips</h2>
+
+  <ul class="trip-list">
+    {% for trip in trips %}
+      <li>
+        <div class="trip-info">
+          <a href="{{ url_for('show_trip', trip_id=trip.id) }}">
+            {{ trip.name }}
+          </a>
+
+          <span class="currency">
+            {{ trip.currency }}
+          </span>
+        </div>
+
+        <!-- Delete the selected trip -->
+        <form
+          class="delete-form"
+          method="post"
+          action="{{ url_for('remove_trip', trip_id=trip.id) }}"
+        >
+          <button class="delete-button" type="submit">
+            Delete
+          </button>
+        </form>
+      </li>
+    {% else %}
+      <li>
+        <div class="trip-info">
+          No trips yet. Create your first trip below.
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+
+  <!-- Form for creating a new trip -->
+  <h2>Create a new trip</h2>
+
+  <form
+    class="form-box"
+    method="post"
+    action="{{ url_for('create_trip') }}"
+  >
+    <div class="form-group">
+      <label for="trip-name">Trip name</label>
+
+      <input
+        id="trip-name"
+        type="text"
+        name="name"
+        placeholder="e.g. Summer in Italy"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="currency">Currency</label>
+
+      <input
+        id="currency"
+        type="text"
+        name="currency"
+        value="EUR"
+        maxlength="3"
+      >
+    </div>
+
+    <button class="create-button" type="submit">
+      Create trip
+    </button>
+  </form>
+
+
+  <!-- Shows which frontend instance served the page -->
+  <footer>
+    Page served by frontend copy: {{ hostname }}
+  </footer>
+
+</body>
+</html>
